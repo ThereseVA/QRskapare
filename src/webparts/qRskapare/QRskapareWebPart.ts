@@ -12,6 +12,36 @@ import * as strings from 'QRskapareWebPartStrings';
 import QRskapare from './components/QRskapare';
 import { IQRskapareProps } from './components/IQRskapareProps';
 
+// Cache busting utilities
+class CacheBuster {
+  private static readonly CACHE_VERSION = '1.0.0';
+  private static readonly BUILD_TIMESTAMP = Date.now().toString();
+  
+  public static getBustingParams(): string {
+    return `v=${this.CACHE_VERSION}&t=${this.BUILD_TIMESTAMP}&r=${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  public static addCacheBustingHeaders(): void {
+    // Force no-cache headers
+    const metaTags = [
+      { name: 'Cache-Control', content: 'no-cache, no-store, must-revalidate, max-age=0' },
+      { name: 'Pragma', content: 'no-cache' },
+      { name: 'Expires', content: '0' },
+      { name: 'Last-Modified', content: new Date().toUTCString() }
+    ];
+    
+    metaTags.forEach(tag => {
+      let meta = document.querySelector(`meta[http-equiv="${tag.name}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.httpEquiv = tag.name;
+        document.head.appendChild(meta);
+      }
+      meta.content = tag.content;
+    });
+  }
+}
+
 export interface IQRskapareWebPartProps {
   description: string;
 }
@@ -37,9 +67,68 @@ export default class QRskapareWebPart extends BaseClientSideWebPart<IQRskapareWe
   }
 
   protected onInit(): Promise<void> {
+    // Initialize mega-strong cache busting
+    this._initializeCacheBusting();
+    
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
     });
+  }
+
+  private _initializeCacheBusting(): void {
+    try {
+      // Add cache busting headers
+      CacheBuster.addCacheBustingHeaders();
+      
+      // Force reload of any cached resources
+      if (window.performance && window.performance.navigation) {
+        const navType = window.performance.navigation.type;
+        // If page was loaded from cache, force a hard refresh
+        if (navType === 2) { // TYPE_BACK_FORWARD
+          window.location.reload();
+        }
+      }
+      
+      // Clear any existing caches
+      this._clearWebPartCaches();
+      
+      // Add version info to DOM for debugging
+      const versionInfo = document.createElement('meta');
+      versionInfo.name = 'qr-webpart-version';
+      versionInfo.content = `${Version.parse('1.0').toString()}-${Date.now()}`;
+      document.head.appendChild(versionInfo);
+      
+      console.log('QRskapare Cache Buster initialized:', CacheBuster.getBustingParams());
+    } catch (error) {
+      console.warn('Cache busting initialization failed:', error);
+    }
+  }
+
+  private _clearWebPartCaches(): void {
+    try {
+      // Clear localStorage entries related to SPFx
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('spfx') || key.includes('sharepoint') || key.includes('qr'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Clear sessionStorage entries
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.includes('spfx') || key.includes('sharepoint') || key.includes('qr'))) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+      
+    } catch (error) {
+      console.warn('Cache clearing failed:', error);
+    }
   }
 
 
@@ -94,7 +183,9 @@ export default class QRskapareWebPart extends BaseClientSideWebPart<IQRskapareWe
   }
 
   protected get dataVersion(): Version {
-    return Version.parse('1.0');
+    // Dynamic version with timestamp for mega cache busting
+    const timestamp = Date.now();
+    return Version.parse(`1.0.${Math.floor(timestamp / 1000)}.${timestamp % 1000}`);
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {

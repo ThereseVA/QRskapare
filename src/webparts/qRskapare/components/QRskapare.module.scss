@@ -2,33 +2,116 @@
 
 .qRskapare {
   overflow: hidden;
-  padding: 1em;
+  padding: 2em;
   color: "[theme:bodyText, default: #323130]";
   color: var(--bodyText);
+  background: "[theme:bodyBackground, default: #ffffff]";
+  background: var(--bodyBackground);
+  min-height: 600px;
+  
   &.teams {
     font-family: $ms-font-family-fallbacks;
   }
 }
 
-.welcome {
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2em;
+  text-align: center;
+  color: "[theme:themePrimary, default: #0078d4]";
+  color: var(--themePrimary);
+}
+
+.preview {
+  padding: 1em;
+  background: "[theme:neutralLighterAlt, default: #faf9f8]";
+  background: var(--neutralLighterAlt);
+  border-radius: 4px;
+  border: 1px solid "[theme:neutralQuaternaryAlt, default: #e1dfdd]";
+  border: 1px solid var(--neutralQuaternaryAlt);
   text-align: center;
 }
 
-.welcomeImage {
-  width: 100%;
-  max-width: 420px;
+.qrPreview {
+  max-width: 200px;
+  height: auto;
+  margin: 1em auto;
+  display: block;
+  border: 1px solid "[theme:neutralTertiaryAlt, default: #c8c6c4]";
+  border: 1px solid var(--neutralTertiaryAlt);
+  border-radius: 4px;
 }
 
-.links {
-  a {
-    text-decoration: none;
-    color: "[theme:link, default:#03787c]";
-    color: var(--link); // note: CSS Custom Properties support is limited to modern browsers only
+.templatePreview {
+  padding: 1.5em;
+  background: "[theme:neutralLighterAlt, default: #faf9f8]";
+  background: var(--neutralLighterAlt);
+  border-radius: 4px;
+  border: 1px solid "[theme:neutralQuaternaryAlt, default: #e1dfdd]";
+  border: 1px solid var(--neutralQuaternaryAlt);
+}
 
-    &:hover {
-      text-decoration: underline;
-      color: "[theme:linkHovered, default: #014446]";
-      color: var(--linkHovered); // note: CSS Custom Properties support is limited to modern browsers only
+.previewContent {
+  margin-top: 1em;
+  padding: 1em;
+  background: "[theme:white, default: #ffffff]";
+  background: var(--white);
+  border-radius: 4px;
+  border: 1px solid "[theme:neutralTertiaryAlt, default: #c8c6c4]";
+  border: 1px solid var(--neutralTertiaryAlt);
+  
+  pre {
+    margin: 0;
+    padding: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    line-height: 1.5;
+    color: "[theme:bodyText, default: #323130]";
+    color: var(--bodyText);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .qRskapare {
+    padding: 1em;
+  }
+  
+  .container {
+    max-width: 100%;
+  }
+  
+  .title {
+    font-size: 1.5em;
+    margin-bottom: 1.5em;
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .qRskapare {
+    .qrPreview {
+      filter: invert(1);
     }
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .preview,
+  .templatePreview,
+  .previewContent {
+    border-width: 2px;
+  }
+  
+  .qrPreview {
+    border-width: 2px;
   }
 }
