@@ -27,7 +27,11 @@
     "git:diff": "git diff",
     "git:pull": "git pull",
     "git:branch": "git branch -v",
-    "test-gustafkliniken": "start test-gustafkliniken.html"
+    "test-gustafkliniken": "start test-gustafkliniken.html",
+    "dev": "npm run clean && npm run serve:nobrowser",
+    "dev:fast": "gulp serve --nobrowser --locale=en-us",
+    "build:fast": "gulp bundle --locale=en-us",
+    "build:watch": "gulp bundle --locale=en-us --watch"
   },
   "dependencies": {
     "@fluentui/react": "^8.106.4",

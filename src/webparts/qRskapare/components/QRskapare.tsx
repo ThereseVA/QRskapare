@@ -20,12 +20,16 @@ import {
 import * as QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
-import { generateGustafKlinikenTemplate } from './GustafTemplate';
+import { getGustafKlinikenTemplate } from './SimpleTemplate';
 import { Document, Packer, Paragraph, ImageRun, TextRun, HeadingLevel } from 'docx';
 import * as XLSX from 'xlsx';
+import { 
+  TemplateManager,
+  ITemplate
+} from './WordTemplateManager';
 
 // Template definitions with Swedish and English placeholders
-interface ITemplate {
+interface ILocalTemplate {
   id: string;
   name: string;
   content: string;
@@ -42,7 +46,7 @@ interface IExcelRow {
   header?: string;
 }
 
-const templates: ITemplate[] = [
+const templates: ILocalTemplate[] = [
   {
     id: 'basic',
     name: 'Basic Template / Grundmall',
@@ -118,6 +122,8 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
   const [excelData, setExcelData] = useState<IExcelRow[]>([]);
   const [isProcessingExcel, setIsProcessingExcel] = useState<boolean>(false);
   const [showBatchMode, setShowBatchMode] = useState<boolean>(false);
+  const [templateManager] = useState<TemplateManager>(() => new TemplateManager());
+  const [availableTemplates, setAvailableTemplates] = useState<ITemplate[]>([]);
 
   // Generate QR code previews for all URLs
   useEffect(() => {
@@ -151,7 +157,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     generatePreviews();
   }, [urls]);
 
-  const getCurrentTemplate = (): ITemplate => {
+  const getCurrentTemplate = (): ILocalTemplate => {
     return templates.find(t => t.id === selectedTemplate) || templates[0];
   };
 
@@ -554,8 +560,9 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
       
       console.log('🏥 Generating Gustaf Kliniken template document');
       
-      // Generate the template (now returns Blob directly)
-      const templateBlob = await generateGustafKlinikenTemplate();
+      // Generate the template using simple text approach
+      const templateText = getGustafKlinikenTemplate();
+      const templateBlob = new Blob([templateText], { type: 'text/plain;charset=utf-8' });
       
       // Save the document as text file (works like HTML test)
       const fileName = `Gustaf_Kliniken_Mall_${new Date().toISOString().split('T')[0]}.txt`;
@@ -570,6 +577,64 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
       console.error('❌ Error generating Gustaf template:', error);
       setMessage({
         text: `❌ Fel vid generering av Gustaf Kliniken mall: ${error.message}`,
+        type: MessageBarType.error
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleTemplateUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsGenerating(true);
+      const template = await templateManager.uploadTemplate(file);
+      setAvailableTemplates(prev => [...prev, template]);
+      
+      setMessage({
+        text: `✅ Mall "${template.name}" har laddats upp och är redo att användas!`,
+        type: MessageBarType.success
+      });
+    } catch (error) {
+      console.error('❌ Error uploading template:', error);
+      setMessage({
+        text: `❌ Fel vid uppladdning av mall: ${error.message}`,
+        type: MessageBarType.error
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateFromTemplate = async (templateId: string): Promise<void> => {
+    const template = availableTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    try {
+      setIsGenerating(true);
+      
+      // Create placeholder data
+      const placeholderData = {
+        CUSTOM_TITLE: headerText || 'QR-koder',
+        CUSTOM_TEXT: text || 'Genererade QR-koder',
+        QR_CODE: urls[0] || 'https://example.com'
+      };
+
+      const documentBlob = await templateManager.processTemplate(template.id, placeholderData);
+      const fileName = `${template.name.replace('.docx', '')}_${new Date().toISOString().split('T')[0]}.docx`;
+      
+      saveAs(documentBlob, fileName);
+      
+      setMessage({
+        text: `✅ Dokument genererat från mall "${template.name}"!`,
+        type: MessageBarType.success
+      });
+    } catch (error) {
+      console.error('❌ Error generating from template:', error);
+      setMessage({
+        text: `❌ Fel vid generering från mall: ${error.message}`,
         type: MessageBarType.error
       });
     } finally {
@@ -891,6 +956,52 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
               disabled={isGenerating}
               title="Generera Gustaf Kliniken Word-mall med korrekt header och footer"
             />
+
+            {/* Word Template Management Section */}
+            <Stack tokens={{ childrenGap: 10 }} styles={{ root: { border: '1px solid #edebe9', padding: 15, borderRadius: 4 } }}>
+              <Text variant="mediumPlus" styles={{ root: { fontWeight: 'bold' } }}>
+                📄 Word-mallar med formatering
+              </Text>
+              
+              <Stack horizontal tokens={{ childrenGap: 10 }} verticalAlign="center">
+                <input
+                  type="file"
+                  accept=".docx"
+                  onChange={handleTemplateUpload}
+                  style={{ display: 'none' }}
+                  id="template-upload"
+                />
+                <DefaultButton
+                  text="Ladda upp Word-mall"
+                  onClick={() => document.getElementById('template-upload')?.click()}
+                  disabled={isGenerating}
+                  iconProps={{ iconName: 'Upload' }}
+                />
+                <Text variant="small">
+                  Ladda upp .docx-filer med placeholders som {'{QR_CODE}'}, {'{CUSTOM_TITLE}'}, {'{CUSTOM_TEXT}'}
+                </Text>
+              </Stack>
+
+              {availableTemplates.length > 0 && (
+                <Stack tokens={{ childrenGap: 10 }}>
+                  <Text variant="medium" styles={{ root: { fontWeight: 'bold' } }}>
+                    Tillgängliga mallar:
+                  </Text>
+                  {availableTemplates.map(template => (
+                    <Stack key={template.id} horizontal tokens={{ childrenGap: 10 }} verticalAlign="center">
+                      <Text>{template.name}</Text>
+                      <DefaultButton
+                        text="Använd mall"
+                        onClick={() => handleGenerateFromTemplate(template.id)}
+                        disabled={isGenerating}
+
+                        iconProps={{ iconName: 'WordDocument' }}
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
             
             {isGenerating && <Spinner size={SpinnerSize.medium} />}
           </Stack>
