@@ -1,0 +1,18 @@
+
+GUSTAF KLINIKEN MALL
+====================
+
+Detta är en mall som genererats programmatiskt utan base64 eller externa filer.
+
+Patientinformation:
+- Namn: _______________
+- Personnummer: _______
+- Adress: _____________
+
+Anteckningar:
+_________________________
+_________________________
+_________________________
+
+Gustaf Kliniken • 08-123 456 78
+    

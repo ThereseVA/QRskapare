@@ -26,7 +26,8 @@
     "git:log": "git log --oneline -10",
     "git:diff": "git diff",
     "git:pull": "git pull",
-    "git:branch": "git branch -v"
+    "git:branch": "git branch -v",
+    "test-gustafkliniken": "start test-gustafkliniken.html"
   },
   "dependencies": {
     "@fluentui/react": "^8.106.4",

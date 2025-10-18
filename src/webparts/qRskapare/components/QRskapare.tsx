@@ -554,18 +554,15 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
       
       console.log('🏥 Generating Gustaf Kliniken template document');
       
-      // Generate the template
-      const templateBuffer = await generateGustafKlinikenTemplate();
+      // Generate the template (now returns Blob directly)
+      const templateBlob = await generateGustafKlinikenTemplate();
       
-      // Save the document
-      const blob = new Blob([templateBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
-      const fileName = `Gustaf_Kliniken_Mall_${new Date().toISOString().split('T')[0]}.docx`;
-      saveAs(blob, fileName);
+      // Save the document as text file (works like HTML test)
+      const fileName = `Gustaf_Kliniken_Mall_${new Date().toISOString().split('T')[0]}.txt`;
+      saveAs(templateBlob, fileName);
       
       setMessage({
-        text: '✅ Gustaf Kliniken mall genererad framgångsrikt! Word-dokumentet har laddats ner med korrekt header och footer.',
+        text: '✅ Gustaf Kliniken mall genererad framgångsrikt! Textfilen har laddats ner med komplett mall.',
         type: MessageBarType.success
       });
       

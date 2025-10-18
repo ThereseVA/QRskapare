@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Gustaf Kliniken Template</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+</head>
+<body>
+    <h1>🏥 Gustaf Kliniken Template Test</h1>
+    <p>Testa den enkla lösningen utan SharePoint workbench:</p>
+    
+    <button onclick="generateGustafTemplate()">🏥 Ladda ner Gustaf Kliniken Mall</button>
+    
+    <div id="result"></div>
+
+    <script>
+        // Vänta tills biblioteken laddats
+        window.addEventListener('load', function() {
+            if (typeof docx === 'undefined') {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Docx biblioteket kunde inte laddas</p>';
+                return;
+            }
+        });
+        
+        function generateGustafTemplate() {
+            if (typeof docx === 'undefined') {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Docx biblioteket är inte tillgängligt</p>';
+                return;
+            }
+            
+            const { Document, Packer, Paragraph, Header, Footer, TextRun, AlignmentType, HeadingLevel } = docx;
+        
+        function generateGustafTemplate() {
+            try {
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        headers: {
+                            default: new Header({
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: "Gustaf Kliniken",
+                                                bold: true,
+                                                size: 32,
+                                                color: "2E5090"
+                                            })
+                                        ],
+                                        alignment: AlignmentType.CENTER
+                                    })
+                                ]
+                            })
+                        },
+                        footers: {
+                            default: new Footer({
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: "Gustaf Kliniken • Telefon: 08-123 456 78 • www.gustafkliniken.se",
+                                                size: 20,
+                                                color: "666666"
+                                            })
+                                        ],
+                                        alignment: AlignmentType.CENTER
+                                    })
+                                ]
+                            })
+                        },
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Gustaf Kliniken",
+                                        bold: true,
+                                        size: 48,
+                                        color: "2E5090"
+                                    })
+                                ],
+                                heading: HeadingLevel.TITLE,
+                                alignment: AlignmentType.CENTER
+                            }),
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Dokumentmall",
+                                        size: 32,
+                                        color: "666666"
+                                    })
+                                ],
+                                alignment: AlignmentType.CENTER
+                            }),
+                            new Paragraph({ text: "" }), // Tom rad
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Patientinformation:",
+                                        bold: true,
+                                        size: 24
+                                    })
+                                ]
+                            }),
+                            new Paragraph({ text: "Namn: ___________________________" }),
+                            new Paragraph({ text: "Personnummer: ___________________" }),
+                            new Paragraph({ text: "Adress: _________________________" }),
+                            new Paragraph({ text: "Telefon: ________________________" }),
+                            new Paragraph({ text: "" }), // Tom rad
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Anteckningar:",
+                                        bold: true,
+                                        size: 24
+                                    })
+                                ]
+                            }),
+                            new Paragraph({ text: "_____________________________________" }),
+                            new Paragraph({ text: "_____________________________________" }),
+                            new Paragraph({ text: "_____________________________________" }),
+                            new Paragraph({ text: "_____________________________________" }),
+                            new Paragraph({ text: "_____________________________________" })
+                        ]
+                    }]
+                });
+
+                Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, "Gustaf_Kliniken_Mall.docx");
+                    document.getElementById('result').innerHTML = '<p class="success">✅ Gustaf Kliniken mall nedladdad!</p>';
+                });
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p class="error">❌ Fel: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,25 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/spfx-serve.schema.json",
   "port": 4321,
   "https": true,
-  "api": {
-    "port": 5432,
-    "entryPath": "node_modules/@microsoft/sp-webpart-workbench/lib/api/"
-  },
   "serveConfigurations": {
     "default": {
-      "pageUrl": "https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx",
-      "customActions": {
-        "f0834c6e-1234-5678-9012-123456789012": {
-          "location": "ClientSideExtension.ApplicationCustomizer",
-          "properties": {
-            "testMessage": "Test message"
-          }
-        }
-      }
+      "pageUrl": "https://localhost:4321/temp/workbench.html"
     },
     "helloWorld": {
-      "pageUrl": "https://gustafkliniken.sharepoint.com/_layouts/15/workbench.aspx"
+      "pageUrl": "https://localhost:4321/temp/workbench.html"
     }
-  },
-  "initialPage": "https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx"
+  }
 }
