@@ -5,6 +5,7 @@ import type { IQRskapareProps } from './IQRskapareProps';
 import { 
   TextField, 
   PrimaryButton,
+  DefaultButton,
   Dropdown, 
   IDropdownOption,
   Slider,
@@ -20,12 +21,24 @@ import * as QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 import { Document, Packer, Paragraph, ImageRun, TextRun, HeadingLevel } from 'docx';
+import * as XLSX from 'xlsx';
 
 // Template definitions with Swedish and English placeholders
 interface ITemplate {
   id: string;
   name: string;
   content: string;
+}
+
+// Excel data structure for batch processing
+interface IExcelRow {
+  url1: string;
+  url2?: string;
+  url3?: string;
+  url4?: string;
+  url5?: string;
+  text?: string;
+  header?: string;
 }
 
 const templates: ITemplate[] = [
@@ -59,6 +72,24 @@ TEXT HÄR
 
 Register by scanning:
 QR KOD HÄR`
+  },
+  {
+    id: 'multi',
+    name: 'Multiple QR Codes / Flera QR-koder',
+    content: `RUBRIK HÄR
+
+TEXT HÄR
+
+Primary QR Code:
+QR KOD HÄR
+
+Secondary QR Code:
+QR KOD HÄR2
+
+Additional codes:
+QR CODE HERE3
+QR KOD HÄR4
+QR CODE HERE5`
   }
 ];
 
@@ -71,7 +102,7 @@ const fontOptions: IDropdownOption[] = [
 ];
 
 const QRskapare: React.FC<IQRskapareProps> = (props) => {
-  const [url, setUrl] = useState<string>('');
+  const [urls, setUrls] = useState<string[]>(['', '', '', '', '']); // Up to 5 QR codes
   const [text, setText] = useState<string>('');
   const [headerText, setHeaderText] = useState<string>('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('basic');
@@ -81,53 +112,100 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
   const [createWordVersion, setCreateWordVersion] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [message, setMessage] = useState<{ text: string; type: MessageBarType } | null>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const [qrCodeDataUrls, setQrCodeDataUrls] = useState<string[]>(['', '', '', '', '']);
+  const [excelData, setExcelData] = useState<IExcelRow[]>([]);
+  const [isProcessingExcel, setIsProcessingExcel] = useState<boolean>(false);
+  const [showBatchMode, setShowBatchMode] = useState<boolean>(false);
 
-  // Generate QR code preview
+  // Generate QR code previews for all URLs
   useEffect(() => {
-    if (url.trim()) {
-      QRCode.toDataURL(url, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
+    const generatePreviews = async () => {
+      const newDataUrls: string[] = [];
+      
+      for (let i = 0; i < urls.length; i++) {
+        if (urls[i].trim()) {
+          try {
+            const dataUrl = await QRCode.toDataURL(urls[i], {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            newDataUrls[i] = dataUrl;
+          } catch (err) {
+            console.error(`QR Code generation error for URL ${i + 1}:`, err);
+            newDataUrls[i] = '';
+          }
+        } else {
+          newDataUrls[i] = '';
         }
-      })
-      .then(dataUrl => {
-        setQrCodeDataUrl(dataUrl);
-      })
-      .catch(err => {
-        console.error('QR Code generation error:', err);
-      });
-    } else {
-      setQrCodeDataUrl('');
-    }
-  }, [url]);
+      }
+      
+      setQrCodeDataUrls(newDataUrls);
+    };
+
+    generatePreviews();
+  }, [urls]);
 
   const getCurrentTemplate = (): ITemplate => {
     return templates.find(t => t.id === selectedTemplate) || templates[0];
   };
 
-  const processTemplate = (template: string, header: string, body: string): string => {
-    return template
+  const processTemplate = (template: string, header: string, body: string, urlsArray: string[]): string => {
+    let processed = template
       .replace(/HEADER HERE|RUBRIK HÄR/gi, header)
       .replace(/TEXT HERE|TEXT HÄR/gi, body);
+    
+    // Handle numbered QR code placeholders
+    for (let i = 1; i <= 5; i++) {
+      const patterns = [
+        new RegExp(`QR CODE HERE${i > 1 ? i : ''}`, 'gi'),
+        new RegExp(`QR KOD HÄR${i > 1 ? i : ''}`, 'gi')
+      ];
+      
+      patterns.forEach(pattern => {
+        if (urlsArray[i - 1] && urlsArray[i - 1].trim()) {
+          processed = processed.replace(pattern, `QR_CODE_PLACEHOLDER_${i}`);
+        } else {
+          processed = processed.replace(pattern, '');
+        }
+      });
+    }
+    
+    return processed;
   };
 
-  const generatePDF = async (): Promise<void> => {
+  const generatePDF = async (urlsArray: string[], headerOverride?: string, textOverride?: string): Promise<void> => {
     const template = getCurrentTemplate();
-    const processedContent = processTemplate(template.content, headerText, text);
+    const processedContent = processTemplate(
+      template.content, 
+      headerOverride || headerText, 
+      textOverride || text, 
+      urlsArray
+    );
     
-    // Generate high-quality QR code for PDF
-    const qrDataUrl = await QRCode.toDataURL(url, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
+    // Generate high-quality QR codes for PDF
+    const qrDataUrls: string[] = [];
+    for (let i = 0; i < urlsArray.length; i++) {
+      if (urlsArray[i] && urlsArray[i].trim()) {
+        try {
+          const qrDataUrl = await QRCode.toDataURL(urlsArray[i], {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          qrDataUrls[i] = qrDataUrl;
+        } catch (error) {
+          console.error(`Error generating QR code ${i + 1}:`, error);
+          qrDataUrls[i] = '';
+        }
       }
-    });
+    }
 
     // Create PDF
     const pdf = new jsPDF();
@@ -142,13 +220,28 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
         continue;
       }
       
-      if (line.includes('QR CODE HERE') || line.includes('QR KOD HÄR')) {
-        // Add QR code
-        pdf.addImage(qrDataUrl, 'PNG', 20, yPosition, 50, 50);
-        yPosition += 60;
+      // Check for QR code placeholders
+      const qrPlaceholderMatch = line.match(/QR_CODE_PLACEHOLDER_(\d+)/);
+      if (qrPlaceholderMatch) {
+        const qrIndex = parseInt(qrPlaceholderMatch[1]) - 1;
+        if (qrDataUrls[qrIndex]) {
+          // Add QR code
+          const qrSize = 50;
+          const xPosition = 20 + (qrIndex % 2) * 90; // Alternate horizontal position for multiple QR codes
+          pdf.addImage(qrDataUrls[qrIndex], 'PNG', xPosition, yPosition, qrSize, qrSize);
+          
+          // Add URL label below QR code
+          pdf.setFontSize(8);
+          const urlText = pdf.splitTextToSize(urlsArray[qrIndex], 80);
+          pdf.text(urlText, xPosition, yPosition + qrSize + 5);
+          
+          if ((qrIndex + 1) % 2 === 0 || qrIndex === urlsArray.filter(u => u.trim()).length - 1) {
+            yPosition += qrSize + 20; // Move to next row
+          }
+        }
       } else {
-        // Determine if this is a header line
-        const isHeader = line === headerText || 
+        // Regular text line
+        const isHeader = line === (headerOverride || headerText) || 
                         lines.indexOf(line) === 0 || 
                         line.toUpperCase() === line;
         
@@ -166,19 +259,32 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     pdf.save(fileName);
   };
 
-  const generateWord = async (): Promise<void> => {
+  const generateWord = async (urlsArray: string[], headerOverride?: string, textOverride?: string): Promise<void> => {
     const template = getCurrentTemplate();
-    const processedContent = processTemplate(template.content, headerText, text);
+    const processedContent = processTemplate(
+      template.content, 
+      headerOverride || headerText, 
+      textOverride || text, 
+      urlsArray
+    );
     
-    // Generate QR code as data URL and convert to buffer for Word
-    const qrDataUrl = await QRCode.toDataURL(url, {
-      width: 300,
-      margin: 2
-    });
-    
-    // Convert data URL to buffer
-    const response = await fetch(qrDataUrl);
-    const qrBuffer = await response.arrayBuffer();
+    // Generate QR codes as buffers for Word
+    const qrBuffers: ArrayBuffer[] = [];
+    for (let i = 0; i < urlsArray.length; i++) {
+      if (urlsArray[i] && urlsArray[i].trim()) {
+        try {
+          const qrDataUrl = await QRCode.toDataURL(urlsArray[i], {
+            width: 300,
+            margin: 2
+          });
+          const response = await fetch(qrDataUrl);
+          const qrBuffer = await response.arrayBuffer();
+          qrBuffers[i] = qrBuffer;
+        } catch (error) {
+          console.error(`Error generating QR code ${i + 1} for Word:`, error);
+        }
+      }
+    }
 
     const paragraphs: Paragraph[] = [];
     const lines = processedContent.split('\n');
@@ -189,22 +295,40 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
         continue;
       }
       
-      if (line.includes('QR CODE HERE') || line.includes('QR KOD HÄR')) {
-        // Add QR code
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new ImageRun({
-                data: new Uint8Array(qrBuffer),
-                transformation: {
-                  width: 200,
-                  height: 200,
-                },
-                type: 'png'
-              }),
-            ],
-          })
-        );
+      // Check for QR code placeholders
+      const qrPlaceholderMatch = line.match(/QR_CODE_PLACEHOLDER_(\d+)/);
+      if (qrPlaceholderMatch) {
+        const qrIndex = parseInt(qrPlaceholderMatch[1]) - 1;
+        if (qrBuffers[qrIndex]) {
+          // Add QR code
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: new Uint8Array(qrBuffers[qrIndex]),
+                  transformation: {
+                    width: 200,
+                    height: 200,
+                  },
+                  type: 'png'
+                }),
+              ],
+            })
+          );
+          
+          // Add URL text
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: urlsArray[qrIndex],
+                  size: bodyFontSize,
+                  font: selectedFont,
+                }),
+              ],
+            })
+          );
+        }
       } else {
         // Determine if this is a header
         const isHeader = line === headerText || 
@@ -238,9 +362,110 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     saveAs(new Blob([new Uint8Array(buffer)]), fileName);
   };
 
+  // Excel file processing
+  const handleExcelImport = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingExcel(true);
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        const processedData: IExcelRow[] = [];
+        
+        // Process each row (skip header row)
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i] as string[];
+          if (row && row[0]) { // Must have at least URL1
+            processedData.push({
+              url1: row[0] || '',
+              url2: row[1] || '',
+              url3: row[2] || '',
+              url4: row[3] || '',
+              url5: row[4] || '',
+              text: row[5] || text, // Use default if not provided
+              header: row[6] || headerText // Use default if not provided
+            });
+          }
+        }
+        
+        setExcelData(processedData);
+        setShowBatchMode(true);
+        setMessage({ 
+          text: `Excel file processed! ${processedData.length} rows loaded / Excel-fil bearbetad! ${processedData.length} rader laddade`, 
+          type: MessageBarType.success 
+        });
+      } catch (error) {
+        console.error('Excel processing error:', error);
+        setMessage({ 
+          text: 'Error processing Excel file / Fel vid bearbetning av Excel-fil', 
+          type: MessageBarType.error 
+        });
+      } finally {
+        setIsProcessingExcel(false);
+      }
+    };
+    
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Generate documents from Excel data
+  const handleBatchGenerate = async (): Promise<void> => {
+    if (excelData.length === 0) {
+      setMessage({ text: 'No Excel data to process / Ingen Excel-data att bearbeta', type: MessageBarType.error });
+      return;
+    }
+
+    setIsGenerating(true);
+    setMessage(null);
+
+    try {
+      for (let i = 0; i < excelData.length; i++) {
+        const row = excelData[i];
+        const rowUrls = [row.url1, row.url2 || '', row.url3 || '', row.url4 || '', row.url5 || ''];
+        
+        // Generate PDF for each row
+        await generatePDF(rowUrls, row.header, row.text);
+        
+        // Generate Word if requested
+        if (createWordVersion) {
+          await generateWord(rowUrls, row.header, row.text);
+        }
+        
+        // Small delay to prevent overwhelming the browser
+        if (i < excelData.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      const successMessage = createWordVersion 
+        ? `${excelData.length} PDF and Word documents generated! / ${excelData.length} PDF- och Word-dokument skapade!`
+        : `${excelData.length} PDF documents generated! / ${excelData.length} PDF-dokument skapade!`;
+      
+      setMessage({ text: successMessage, type: MessageBarType.success });
+    } catch (error) {
+      console.error('Batch generation error:', error);
+      setMessage({ 
+        text: 'Error generating batch documents / Fel vid skapande av batch-dokument', 
+        type: MessageBarType.error 
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleGenerate = async (): Promise<void> => {
-    if (!url.trim()) {
-      setMessage({ text: 'Please enter a URL / Vänligen ange en URL', type: MessageBarType.error });
+    const activeUrls = urls.filter(u => u.trim());
+    
+    if (activeUrls.length === 0) {
+      setMessage({ text: 'Please enter at least one URL / Vänligen ange minst en URL', type: MessageBarType.error });
       return;
     }
     
@@ -254,11 +479,11 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
 
     try {
       // Generate PDF
-      await generatePDF();
+      await generatePDF(urls);
       
       // Generate Word document if requested
       if (createWordVersion) {
-        await generateWord();
+        await generateWord(urls);
       }
       
       const successMessage = createWordVersion 
@@ -277,6 +502,12 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     }
   };
 
+  const updateUrl = (index: number, value: string): void => {
+    const newUrls = [...urls];
+    newUrls[index] = value;
+    setUrls(newUrls);
+  };
+
   const { hasTeamsContext } = props;
 
   return (
@@ -293,34 +524,95 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
         )}
 
         <Stack tokens={{ childrenGap: 20 }}>
-          {/* URL Input */}
-          <TextField
-            label="URL"
-            placeholder="Enter URL to encode in QR code / Ange URL att koda i QR-kod"
-            value={url}
-            onChange={(_, newValue) => setUrl(newValue || '')}
-            required
-          />
+          {/* Mode Selection */}
+          <Stack horizontal tokens={{ childrenGap: 20 }}>
+            <PrimaryButton
+              text="Single Document / Enskilt dokument"
+              onClick={() => setShowBatchMode(false)}
+              disabled={!showBatchMode}
+            />
+            <DefaultButton
+              text="Batch from Excel / Batch från Excel"
+              onClick={() => setShowBatchMode(true)}
+              disabled={showBatchMode}
+            />
+          </Stack>
 
-          {/* Header Text Input */}
-          <TextField
-            label="Header Text / Rubriktext"
-            placeholder="Enter header text / Ange rubriktext"
-            value={headerText}
-            onChange={(_, newValue) => setHeaderText(newValue || '')}
-            required
-          />
+          {!showBatchMode ? (
+            // Single document mode
+            <>
+              {/* Multiple URL Inputs */}
+              <Stack tokens={{ childrenGap: 10 }}>
+                <Text variant="large">URLs for QR Codes / URLs för QR-koder:</Text>
+                {urls.map((url, index) => (
+                  <TextField
+                    key={index}
+                    label={`URL ${index + 1} ${index === 0 ? '(Required / Obligatorisk)' : '(Optional / Valfri)'}`}
+                    placeholder={`Enter URL ${index + 1} / Ange URL ${index + 1}`}
+                    value={url}
+                    onChange={(_, newValue) => updateUrl(index, newValue || '')}
+                    required={index === 0}
+                  />
+                ))}
+              </Stack>
 
-          {/* Main Text Input */}
-          <TextField
-            label="Main Text / Huvudtext"
-            placeholder="Enter main content / Ange huvudinnehåll"
-            value={text}
-            onChange={(_, newValue) => setText(newValue || '')}
-            multiline
-            rows={4}
-            required
-          />
+              {/* Header Text Input */}
+              <TextField
+                label="Header Text / Rubriktext"
+                placeholder="Enter header text / Ange rubriktext"
+                value={headerText}
+                onChange={(_, newValue) => setHeaderText(newValue || '')}
+                required
+              />
+
+              {/* Main Text Input */}
+              <TextField
+                label="Main Text / Huvudtext"
+                placeholder="Enter main content / Ange huvudinnehåll"
+                value={text}
+                onChange={(_, newValue) => setText(newValue || '')}
+                multiline
+                rows={4}
+                required
+              />
+            </>
+          ) : (
+            // Excel batch mode
+            <Stack tokens={{ childrenGap: 15 }}>
+              <Text variant="large">Excel Import / Excel-import:</Text>
+              <Text>
+                Excel format: Column A=URL1, B=URL2, C=URL3, D=URL4, E=URL5, F=Text, G=Header
+                <br />
+                Excel-format: Kolumn A=URL1, B=URL2, C=URL3, D=URL4, E=URL5, F=Text, G=Rubrik
+              </Text>
+              
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleExcelImport}
+                style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+              
+              {isProcessingExcel && <Spinner size={SpinnerSize.medium} label="Processing Excel file..." />}
+              
+              {excelData.length > 0 && (
+                <div className={styles.preview}>
+                  <Text variant="large">Excel Data Preview / Excel-data förhandsvisning:</Text>
+                  <Text>{excelData.length} rows loaded / rader laddade</Text>
+                  <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '10px' }}>
+                    {excelData.slice(0, 5).map((row, index) => (
+                      <div key={index} style={{ padding: '5px', borderBottom: '1px solid #eee' }}>
+                        <strong>Row {index + 1}:</strong> URLs: {[row.url1, row.url2, row.url3, row.url4, row.url5].filter(Boolean).length}, 
+                        Header: {row.header?.substring(0, 30) || 'Default'}..., 
+                        Text: {row.text?.substring(0, 50) || 'Default'}...
+                      </div>
+                    ))}
+                    {excelData.length > 5 && <Text>...and {excelData.length - 5} more rows</Text>}
+                  </div>
+                </div>
+              )}
+            </Stack>
+          )}
 
           {/* Template Selection */}
           <Dropdown
@@ -371,31 +663,46 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
             onChange={(_, checked) => setCreateWordVersion(checked || false)}
           />
 
-          {/* QR Code Preview */}
-          {qrCodeDataUrl && (
+          {/* QR Code Previews */}
+          {!showBatchMode && qrCodeDataUrls.some(url => url) && (
             <div className={styles.preview}>
-              <Text variant="large">QR Code Preview / QR-kod förhandsvisning:</Text>
-              <img src={qrCodeDataUrl} alt="QR Code Preview" className={styles.qrPreview} />
+              <Text variant="large">QR Code Previews / QR-kod förhandsvisningar:</Text>
+              <Stack horizontal wrap tokens={{ childrenGap: 10 }}>
+                {qrCodeDataUrls.map((dataUrl, index) => dataUrl && (
+                  <div key={index} style={{ textAlign: 'center' }}>
+                    <Text>QR {index + 1}</Text>
+                    <img src={dataUrl} alt={`QR Code ${index + 1}`} className={styles.qrPreview} />
+                  </div>
+                ))}
+              </Stack>
             </div>
           )}
 
           {/* Template Preview */}
-          {headerText && text && (
+          {!showBatchMode && headerText && text && (
             <div className={styles.templatePreview}>
               <Text variant="large">Template Preview / Mallförhandsvisning:</Text>
               <div className={styles.previewContent} style={{ fontFamily: selectedFont }}>
-                <pre>{processTemplate(getCurrentTemplate().content, headerText, text)}</pre>
+                <pre>{processTemplate(getCurrentTemplate().content, headerText, text, urls)}</pre>
               </div>
             </div>
           )}
 
-          {/* Generate Button */}
+          {/* Generate Buttons */}
           <Stack horizontal tokens={{ childrenGap: 10 }}>
-            <PrimaryButton
-              text={isGenerating ? "Generating... / Genererar..." : "Generate Documents / Generera dokument"}
-              onClick={handleGenerate}
-              disabled={isGenerating || !url.trim() || !text.trim() || !headerText.trim()}
-            />
+            {!showBatchMode ? (
+              <PrimaryButton
+                text={isGenerating ? "Generating... / Genererar..." : "Generate Documents / Generera dokument"}
+                onClick={handleGenerate}
+                disabled={isGenerating || !urls[0].trim() || !text.trim() || !headerText.trim()}
+              />
+            ) : (
+              <PrimaryButton
+                text={isGenerating ? "Generating Batch... / Genererar batch..." : "Generate All Documents / Generera alla dokument"}
+                onClick={handleBatchGenerate}
+                disabled={isGenerating || excelData.length === 0}
+              />
+            )}
             {isGenerating && <Spinner size={SpinnerSize.medium} />}
           </Stack>
         </Stack>
