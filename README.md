@@ -1,10 +1,21 @@
-# q-rskapare
+# QRskapare - QR Code Generator Web Part
 
 ## Summary
 
-Short summary on functionality and used technologies.
+A SharePoint Framework (SPFx) web part that generates QR codes for various purposes. Built with React and TypeScript, this solution provides an easy-to-use interface for creating QR codes directly within SharePoint pages.
 
-[picture of the solution in action, if possible]
+**Features:**
+- Generate QR codes for text, URLs, email addresses, and more
+- Customizable QR code size and error correction levels
+- Download generated QR codes as images
+- Responsive design for mobile and desktop
+- Integration with SharePoint workbench for testing
+
+**Technologies used:**
+- SharePoint Framework (SPFx) 1.21.1
+- React 17.0.1
+- TypeScript 5.3.3
+- Fluent UI React 8.106.4
 
 ## Used SharePoint Framework Version
 
