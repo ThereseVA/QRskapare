@@ -109,6 +109,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
   const [selectedFont, setSelectedFont] = useState<string>('Segoe UI');
   const [headerFontSize, setHeaderFontSize] = useState<number>(24);
   const [bodyFontSize, setBodyFontSize] = useState<number>(14);
+  const [qrCodeSize, setQrCodeSize] = useState<number>(50); // QR code size in mm/points
   const [createWordVersion, setCreateWordVersion] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [message, setMessage] = useState<{ text: string; type: MessageBarType } | null>(null);
@@ -225,18 +226,17 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
       if (qrPlaceholderMatch) {
         const qrIndex = parseInt(qrPlaceholderMatch[1]) - 1;
         if (qrDataUrls[qrIndex]) {
-          // Add QR code
-          const qrSize = 50;
-          const xPosition = 20 + (qrIndex % 2) * 90; // Alternate horizontal position for multiple QR codes
-          pdf.addImage(qrDataUrls[qrIndex], 'PNG', xPosition, yPosition, qrSize, qrSize);
+          // Add QR code with custom size
+          const xPosition = 20 + (qrIndex % 2) * (qrCodeSize + 10); // Alternate horizontal position for multiple QR codes
+          pdf.addImage(qrDataUrls[qrIndex], 'PNG', xPosition, yPosition, qrCodeSize, qrCodeSize);
           
           // Add URL label below QR code
           pdf.setFontSize(8);
           const urlText = pdf.splitTextToSize(urlsArray[qrIndex], 80);
-          pdf.text(urlText, xPosition, yPosition + qrSize + 5);
+          pdf.text(urlText, xPosition, yPosition + qrCodeSize + 5);
           
           if ((qrIndex + 1) % 2 === 0 || qrIndex === urlsArray.filter(u => u.trim()).length - 1) {
-            yPosition += qrSize + 20; // Move to next row
+            yPosition += qrCodeSize + 20; // Move to next row
           }
         }
       } else {
@@ -305,13 +305,13 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
             new Paragraph({
               children: [
                 new ImageRun({
-                  data: new Uint8Array(qrBuffers[qrIndex]),
-                  transformation: {
-                    width: 200,
-                    height: 200,
-                  },
-                  type: 'png'
-                }),
+                data: new Uint8Array(qrBuffers[qrIndex]),
+                transformation: {
+                  width: qrCodeSize * 4, // Convert to Word units (approximately)
+                  height: qrCodeSize * 4,
+                },
+                type: 'png'
+              }),
               ],
             })
           );
@@ -362,7 +362,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     saveAs(new Blob([new Uint8Array(buffer)]), fileName);
   };
 
-  // Excel file processing
+  // Excel file processing - handles both with and without headers
   const handleExcelImport = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -376,23 +376,67 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // First, try to read with headers
+        const jsonDataWithHeaders = XLSX.utils.sheet_to_json(worksheet);
+        const jsonDataArray = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         
         const processedData: IExcelRow[] = [];
+        let startRow = 0;
         
-        // Process each row (skip header row)
-        for (let i = 1; i < jsonData.length; i++) {
-          const row = jsonData[i] as string[];
+        // Check if first row contains headers by looking for common header patterns
+        const firstRowArray = jsonDataArray[0] as string[];
+        const hasHeaders = firstRowArray && (
+          firstRowArray.some(cell => 
+            cell && typeof cell === 'string' && 
+            (cell.toLowerCase().includes('url') || 
+             cell.toLowerCase().includes('text') || 
+             cell.toLowerCase().includes('header') ||
+             cell.toLowerCase().includes('rubrik'))
+          )
+        );
+        
+        if (hasHeaders) {
+          startRow = 1; // Skip header row
+          console.log('Excel file has headers, processing from row 2');
+        } else {
+          startRow = 0; // Start from first row
+          console.log('Excel file has no headers, processing from row 1');
+        }
+        
+        // Process data rows
+        for (let i = startRow; i < jsonDataArray.length; i++) {
+          const row = jsonDataArray[i] as string[];
           if (row && row[0]) { // Must have at least URL1
-            processedData.push({
-              url1: row[0] || '',
-              url2: row[1] || '',
-              url3: row[2] || '',
-              url4: row[3] || '',
-              url5: row[4] || '',
-              text: row[5] || text, // Use default if not provided
-              header: row[6] || headerText // Use default if not provided
-            });
+            
+            // Try to map by headers first if they exist
+            let processedRow: IExcelRow;
+            
+            if (hasHeaders && jsonDataWithHeaders[i - 1]) {
+              const headerRow = jsonDataWithHeaders[i - 1] as any;
+              processedRow = {
+                url1: headerRow['URL1'] || headerRow['url1'] || headerRow['URL'] || headerRow['url'] || row[0] || '',
+                url2: headerRow['URL2'] || headerRow['url2'] || row[1] || '',
+                url3: headerRow['URL3'] || headerRow['url3'] || row[2] || '',
+                url4: headerRow['URL4'] || headerRow['url4'] || row[3] || '',
+                url5: headerRow['URL5'] || headerRow['url5'] || row[4] || '',
+                text: headerRow['Text'] || headerRow['text'] || headerRow['TEXT'] || row[5] || text,
+                header: headerRow['Header'] || headerRow['header'] || headerRow['HEADER'] || headerRow['Rubrik'] || headerRow['rubrik'] || row[6] || headerText
+              };
+            } else {
+              // Fallback to positional mapping
+              processedRow = {
+                url1: row[0] || '',
+                url2: row[1] || '',
+                url3: row[2] || '',
+                url4: row[3] || '',
+                url5: row[4] || '',
+                text: row[5] || text, // Use default if not provided
+                header: row[6] || headerText // Use default if not provided
+              };
+            }
+            
+            processedData.push(processedRow);
           }
         }
         
@@ -580,11 +624,21 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
             // Excel batch mode
             <Stack tokens={{ childrenGap: 15 }}>
               <Text variant="large">Excel Import / Excel-import:</Text>
-              <Text>
-                Excel format: Column A=URL1, B=URL2, C=URL3, D=URL4, E=URL5, F=Text, G=Header
+              <div>
+                <Text><strong>Excel Configuration Options / Excel-konfigurationsalternativ:</strong></Text>
                 <br />
-                Excel-format: Kolumn A=URL1, B=URL2, C=URL3, D=URL4, E=URL5, F=Text, G=Rubrik
-              </Text>
+                <Text><strong>Option 1 - With Headers (Recommended):</strong></Text>
+                <Text>Row 1: URL1 | URL2 | URL3 | URL4 | URL5 | Text | Header</Text>
+                <Text>Row 2+: Your data...</Text>
+                <br />
+                <Text><strong>Option 2 - Without Headers:</strong></Text>
+                <Text>Row 1: data | data | data | data | data | data | data</Text>
+                <Text>Column order: A=URL1, B=URL2, C=URL3, D=URL4, E=URL5, F=Text, G=Header</Text>
+                <br />
+                <Text style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                  Headers can be: URL1/url1, URL2/url2, Text/text, Header/header/Rubrik/rubrik
+                </Text>
+              </div>
               
               <input
                 type="file"
@@ -630,7 +684,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
             onChange={(_, option) => setSelectedFont(option?.key as string || 'Segoe UI')}
           />
 
-          <Stack horizontal tokens={{ childrenGap: 20 }}>
+          <Stack horizontal tokens={{ childrenGap: 15 }}>
             {/* Header Font Size */}
             <Stack.Item grow>
               <Text>Header Font Size / Rubriktypsnittsstorlek: {headerFontSize}px</Text>
@@ -652,6 +706,18 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
                 step={1}
                 value={bodyFontSize}
                 onChange={(value) => setBodyFontSize(value)}
+              />
+            </Stack.Item>
+
+            {/* QR Code Size */}
+            <Stack.Item grow>
+              <Text>QR Code Size / QR-kodstorlek: {qrCodeSize}mm</Text>
+              <Slider
+                min={25}
+                max={100}
+                step={5}
+                value={qrCodeSize}
+                onChange={(value) => setQrCodeSize(value)}
               />
             </Stack.Item>
           </Stack>
