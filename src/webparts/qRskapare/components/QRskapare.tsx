@@ -552,6 +552,72 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     setUrls(newUrls);
   };
 
+  // Generate and download Excel template
+  const downloadExcelTemplate = (): void => {
+    try {
+      // Create template data with headers and example rows
+      const templateData = [
+        // Header row
+        ['URL1', 'URL2', 'URL3', 'URL4', 'URL5', 'Text', 'Header'],
+        // Example row 1
+        ['https://gustafkliniken.sharepoint.com/sites/Gustafkliniken', 'https://gustafkliniken.se', 'mailto:info@gustafkliniken.se', '', '', 'Visit our SharePoint site and main website for more information', 'Gustaf Kliniken'],
+        // Example row 2  
+        ['https://example.com', 'https://support.example.com', 'tel:+46123456789', '', '', 'Contact us through our website or call support', 'Example Company'],
+        // Example row 3 - minimal
+        ['https://minimal-example.com', '', '', '', '', 'Simple example with just one URL', 'Minimal Example'],
+        // Empty rows for user input
+        ['', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', ''],
+        ['', '', '', '', '', '', '']
+      ];
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 40 }, // URL1
+        { wch: 40 }, // URL2  
+        { wch: 30 }, // URL3
+        { wch: 20 }, // URL4
+        { wch: 20 }, // URL5
+        { wch: 50 }, // Text
+        { wch: 25 }  // Header
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Style the header row (make it bold - basic styling)
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:G1');
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (!worksheet[cellAddress]) worksheet[cellAddress] = {};
+        if (!worksheet[cellAddress].s) worksheet[cellAddress].s = {};
+        worksheet[cellAddress].s.font = { bold: true };
+      }
+
+      // Add the worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'QR Generator Template');
+
+      // Generate and download the file
+      const fileName = `QR_Generator_Template_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      setMessage({
+        text: `Excel template downloaded: ${fileName} / Excel-mall nedladdad: ${fileName}`,
+        type: MessageBarType.success
+      });
+
+    } catch (error) {
+      console.error('Excel template generation error:', error);
+      setMessage({
+        text: 'Error creating Excel template / Fel vid skapande av Excel-mall',
+        type: MessageBarType.error
+      });
+    }
+  };
+
   const { hasTeamsContext } = props;
 
   return (
@@ -624,6 +690,20 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
             // Excel batch mode
             <Stack tokens={{ childrenGap: 15 }}>
               <Text variant="large">Excel Import / Excel-import:</Text>
+              
+              {/* Download Template Button */}
+              <Stack horizontal tokens={{ childrenGap: 10 }} style={{ alignItems: 'center' }}>
+                <DefaultButton
+                  text="📥 Download Excel Template / Ladda ner Excel-mall"
+                  onClick={downloadExcelTemplate}
+                  iconProps={{ iconName: 'Download' }}
+                  style={{ backgroundColor: '#e3f2fd', border: '1px solid #2196f3' }}
+                />
+                <Text style={{ fontSize: '12px', color: '#666' }}>
+                  Get a pre-configured Excel file with examples / Få en förkonfigurerad Excel-fil med exempel
+                </Text>
+              </Stack>
+
               <div>
                 <Text><strong>Excel Configuration Options / Excel-konfigurationsalternativ:</strong></Text>
                 <br />
@@ -640,12 +720,15 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
                 </Text>
               </div>
               
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleExcelImport}
-                style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
-              />
+              <div>
+                <Text><strong>Upload Your Excel File / Ladda upp din Excel-fil:</strong></Text>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelImport}
+                  style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '5px' }}
+                />
+              </div>
               
               {isProcessingExcel && <Spinner size={SpinnerSize.medium} label="Processing Excel file..." />}
               

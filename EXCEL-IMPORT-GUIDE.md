@@ -2,6 +2,8 @@
 
 ## 🔧 Excel File Configuration Options
 
+**🚀 Quick Start:** Use the "Download Excel Template" button in the web part to get a pre-configured file with examples!
+
 The solution automatically detects whether your Excel file has headers or not!
 
 ### **Option 1: With Headers (Recommended)**
@@ -103,8 +105,10 @@ The following placeholders in templates will be replaced:
 
 ## Tips for Best Results
 
-1. **Keep URLs valid** - Invalid URLs will be skipped
-2. **Use descriptive headers** - They help identify generated documents
-3. **Test with small batches first** - Try 2-3 rows before processing large files
-4. **Check templates** - Use the preview feature to verify layout before batch processing
-5. **Browser performance** - Large batches (100+ documents) may take time to process
+1. **📥 Start with the template** - Use the "Download Excel Template" button to get a properly formatted file with examples
+2. **Keep URLs valid** - Invalid URLs will be skipped
+3. **Use descriptive headers** - They help identify generated documents  
+4. **Test with small batches first** - Try 2-3 rows before processing large files
+5. **Check templates** - Use the preview feature to verify layout before batch processing
+6. **Browser performance** - Large batches (100+ documents) may take time to process
+7. **Gustaf Kliniken examples** - The template includes examples using gustafkliniken.sharepoint.com URLs
