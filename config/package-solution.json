@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "q-rskapare-client-side-solution",
+    "id": "ad5648c9-fb3c-463e-8938-8e717d4c66e8",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.21.1"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "QRskapare description"
+      },
+      "longDescription": {
+        "default": "QRskapare description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "q-rskapare Feature",
+        "description": "The feature that activates elements of the q-rskapare solution.",
+        "id": "99ee61f3-45cd-4a57-920c-f632aec7b11d",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/q-rskapare.sppkg"
+  }
+}

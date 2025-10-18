@@ -1,0 +1,18 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "18.20.8",
+    "sdksVersions": {},
+    "version": "1.21.1",
+    "libraryName": "q-rskapare",
+    "libraryId": "ad5648c9-fb3c-463e-8938-8e717d4c66e8",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "QRskapare",
+    "solutionShortDescription": "QRskapare description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "q-rskapare-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/qRskapare/QRskapareWebPart.js",
+          "manifest": "./src/webparts/qRskapare/QRskapareWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "QRskapareWebPartStrings": "lib/webparts/qRskapare/loc/{locale}.js"
+  }
+}
