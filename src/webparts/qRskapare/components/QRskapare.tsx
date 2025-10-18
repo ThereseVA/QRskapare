@@ -20,6 +20,7 @@ import {
 import * as QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
+import { generateGustafKlinikenTemplate } from './GustafTemplate';
 import { Document, Packer, Paragraph, ImageRun, TextRun, HeadingLevel } from 'docx';
 import * as XLSX from 'xlsx';
 
@@ -546,6 +547,39 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     }
   };
 
+  // Generate Gustaf Kliniken template document
+  const handleGenerateGustafTemplate = async (): Promise<void> => {
+    try {
+      setIsGenerating(true);
+      
+      console.log('🏥 Generating Gustaf Kliniken template document');
+      
+      // Generate the template
+      const templateBuffer = await generateGustafKlinikenTemplate();
+      
+      // Save the document
+      const blob = new Blob([templateBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      const fileName = `Gustaf_Kliniken_Mall_${new Date().toISOString().split('T')[0]}.docx`;
+      saveAs(blob, fileName);
+      
+      setMessage({
+        text: '✅ Gustaf Kliniken mall genererad framgångsrikt! Word-dokumentet har laddats ner med korrekt header och footer.',
+        type: MessageBarType.success
+      });
+      
+    } catch (error) {
+      console.error('❌ Error generating Gustaf template:', error);
+      setMessage({
+        text: `❌ Fel vid generering av Gustaf Kliniken mall: ${error.message}`,
+        type: MessageBarType.error
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const updateUrl = (index: number, value: string): void => {
     const newUrls = [...urls];
     newUrls[index] = value;
@@ -852,6 +886,15 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
                 disabled={isGenerating || excelData.length === 0}
               />
             )}
+            
+            {/* Gustaf Kliniken Template Button */}
+            <DefaultButton
+              text="🏥 Gustaf Kliniken Mall"
+              onClick={handleGenerateGustafTemplate}
+              disabled={isGenerating}
+              title="Generera Gustaf Kliniken Word-mall med korrekt header och footer"
+            />
+            
             {isGenerating && <Spinner size={SpinnerSize.medium} />}
           </Stack>
         </Stack>
