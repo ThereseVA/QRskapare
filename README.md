@@ -1,21 +1,31 @@
-# QRskapare - QR Code Generator Web Part
+# QRskapare - QR Code Document Generator with Word Templates
 
 ## Summary
 
-A SharePoint Framework (SPFx) web part that generates QR codes for various purposes. Built with React and TypeScript, this solution provides an easy-to-use interface for creating QR codes directly within SharePoint pages.
+A comprehensive SharePoint Framework (SPFx) web part that generates QR code documents with professional templates. Built with React and TypeScript, this solution provides document generation for both PDF and Word formats with advanced template support.
 
-**Features:**
-- Generate QR codes for text, URLs, email addresses, and more
-- Customizable QR code size and error correction levels
-- Download generated QR codes as images
-- Responsive design for mobile and desktop
-- Integration with SharePoint workbench for testing
+**Key Features:**
+- 📄 **Word Template System**: Upload custom .docx templates with placeholder replacement
+- 🔢 **Batch Processing**: Excel import for generating multiple documents
+- 🏥 **Gustaf Kliniken Integration**: Pre-built templates for healthcare documentation
+- 📱 **Multi-Format Output**: PDF and Word document generation
+- 🎯 **Template Management**: Upload, store and reuse Word templates
+- 📊 **Excel Integration**: Import data from Excel for batch generation
+
+**Template Features:**
+- Upload custom Word (.docx) templates
+- Placeholder replacement: `{QR_CODE}`, `{CUSTOM_TITLE}`, `{CUSTOM_TEXT}`
+- Preserve original document formatting
+- Support for headers, footers, logos, and styling
 
 **Technologies used:**
 - SharePoint Framework (SPFx) 1.21.1
 - React 17.0.1
 - TypeScript 5.3.3
 - Fluent UI React 8.106.4
+- docx library for Word processing
+- jsPDF for PDF generation
+- file-saver for downloads
 
 ## Used SharePoint Framework Version
 
@@ -51,27 +61,67 @@ A SharePoint Framework (SPFx) web part that generates QR codes for various purpo
 
 ---
 
-## Minimal Path to Awesome
+## Quick Start
 
-- Clone this repository
-- Ensure that you are at the solution folder
-- in the command-line run:
-  - **npm install**
-  - **gulp serve**
+```bash
+# Clone repository
+git clone https://github.com/ThereseVA/QRskapare.git
+cd QRskapare
 
-> Include any additional steps as needed.
+# Install dependencies
+npm install
 
-## Features
+# Start development server
+gulp serve --nobrowser
 
-Description of the extension that expands upon high-level summary above.
+# Open workbench
+# Navigate to: https://localhost:4321/temp/workbench.html
+```
 
-This extension illustrates the following concepts:
+## Usage Guide
 
-- topic 1
-- topic 2
-- topic 3
+### 1. Basic QR Code Generation
+- Enter text or URL in the input field
+- Add custom title and description
+- Click "Generate PDF" or generate Word document
+- Download the generated document
 
-> Notice that better pictures and documentation will increase the sample usage and the value you are providing for others. Thanks for your submissions advance.
+### 2. Word Template System
+- **Create Template**: Design Word document with placeholders `{QR_CODE}`, `{CUSTOM_TITLE}`, `{CUSTOM_TEXT}`
+- **Upload Template**: Click "Ladda upp Word-mall" and select your .docx file
+- **Generate Document**: Fill in form fields and click "Använd mall" for desired template
+- **Download**: Generated document preserves original formatting
+
+### 3. Batch Processing with Excel
+- **Download Template**: Click "Ladda ner Excel-mall" for pre-configured spreadsheet
+- **Fill Data**: Add URLs, titles, and text in Excel columns
+- **Import**: Upload filled Excel file using "Import Excel" button
+- **Generate Batch**: Click "Generate Batch" to create multiple documents
+
+### 4. Gustaf Kliniken Templates
+- Pre-built healthcare document templates
+- Click "🏥 Gustaf Kliniken Mall" for instant template generation
+- Includes professional headers, footers, and patient information sections
+
+## Features Deep Dive
+
+### Word Template Management
+- **File Upload**: Drag & drop .docx files or click to browse
+- **Placeholder System**: Automatic replacement of `{PLACEHOLDER}` syntax
+- **Format Preservation**: Maintains fonts, styling, headers, footers, and images
+- **Template Library**: Store and reuse multiple templates
+
+### Excel Integration  
+- **Smart Import**: Automatic header detection (URL1, URL2, Text, Header, etc.)
+- **Flexible Columns**: Support for Swedish and English column names
+- **Batch Generation**: Process hundreds of entries simultaneously
+- **Error Handling**: Validation and clear error messages
+
+### QR Code Features
+- **Multiple Codes**: Up to 5 QR codes per document
+- **Size Control**: Adjustable QR code dimensions (25-100mm)
+- **Quality**: High-resolution output for professional printing
+- **Format Support**: Integration with both PDF and Word outputs
 
 > Share your web part with others through Microsoft 365 Patterns and Practices program to get visibility and exposure. More details on the community, open-source projects and other activities from http://aka.ms/m365pnp.
 
