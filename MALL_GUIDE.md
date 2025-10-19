@@ -1,30 +1,44 @@
 # 📄 GUIDE: Skapa Word-Mallar för QRskapare
 
+## � **VIKTIGT: Systemet bevarar ALL formatering!**
+
+### ✅ **Vad som bevaras:**
+- �🎨 **Headers & Footers** - Sidhuvuden och sidfötter
+- 🖼️ **Loggor & Bilder** - Alla bilder bevaras exakt
+- 🎨 **Fonts & Färger** - All textformatering bibehålls
+- 📐 **Layout & Tabeller** - Struktur förändras inte
+- 🏢 **Företagsdesign** - Din branding är säker
+
+### ❌ **Vad som ERSÄTTS:**
+- Endast text inom `{PLACEHOLDER}` ersätts
+- Allt annat förblir exakt som du designat
+
+---
+
 ## 🎨 Så här skapar du perfekta mallar:
 
 ### **1. Skapa din Word-mall (.docx):**
 
 1. **Öppna Microsoft Word**
-2. **Designa din mall** med:
-   - Headers och footers
-   - Loggor och bilder
-   - Färger och typsnitt
+2. **Designa din mall EXAKT** som du vill att slutdokumentet ska se ut:
+   - Headers och footers med loggor
+   - Färger och typsnitt som passar Gustaf Kliniken
    - Tabeller och layout
-   - Gustaf Kliniken branding
+   - Företagets branding och styling
 
 ### **2. Lägg till placeholders:**
 
 Använd dessa exakta placeholders där du vill ha dynamisk data:
 
 ```
-{{QR_CODE}}           - QR-kod bild (150x150px)
-{{QR_TEXT}}           - Texten som QR-koden innehåller
-{{CUSTOM_TITLE}}      - Titel från webpart
-{{CUSTOM_TEXT}}       - Text från webpart
-{{PATIENT_NAME}}      - Patientnamn (om ifyllt)
-{{DATE}}              - Dagens datum
-{{TIME}}              - Aktuell tid
+{QR_CODE}           - QR-kod innehåll (text)
+{CUSTOM_TITLE}      - Titel från webpart
+{CUSTOM_TEXT}       - Text från webpart
+{PATIENT_NAME}      - Patientnamn (framtida funktion)
+{DATE}              - Dagens datum (framtida funktion)
 ```
+
+**OBS:** Använd `{PLACEHOLDER}` - INTE `{{PLACEHOLDER}}`
 
 ### **3. Exempel på mallstruktur:**
 

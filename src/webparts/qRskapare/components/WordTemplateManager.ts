@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver';
+import * as JSZip from 'jszip';
 
 // Template interface för komponenten
 export interface ITemplate {
@@ -58,21 +59,68 @@ export class TemplateManager {
       throw new Error('Mall kunde inte hittas');
     }
 
-    // För nu skapar vi en enkel text-ersättning
-    // I framtiden kan vi implementera proper docx parsing
-    const templateText = `
-Document Template: ${template.name}
-Generated: ${new Date().toISOString()}
+    try {
+      console.log('🔄 Processing Word template with placeholder replacement...');
+      
+      // Läs docx fil som ZIP (Word-filer är ZIP-arkiv)
+      const zip = new JSZip();
+      const docxZip = await zip.loadAsync(template.file);
+      
+      // Hämta document.xml som innehåller huvudtexten
+      const documentXml = docxZip.file('word/document.xml');
+      if (!documentXml) {
+        throw new Error('Kunde inte hitta document.xml i Word-filen');
+      }
+      
+      let xmlContent = await documentXml.async('text');
+      console.log('📄 XML content loaded, performing placeholder replacement...');
+      
+      // Ersätt placeholders i XML-innehållet
+      Object.entries(placeholderData).forEach(([key, value]) => {
+        const placeholder = `{${key}}`;
+        const escapedValue = this.escapeXmlText(value);
+        
+        // Ersätt alla förekomster av placeholder
+        xmlContent = xmlContent.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), escapedValue);
+        console.log(`✅ Replaced ${placeholder} with: ${value}`);
+      });
+      
+      // Uppdatera document.xml i ZIP-arkivet
+      docxZip.file('word/document.xml', xmlContent);
+      
+      // Generera nytt docx-arkiv
+      const newDocxBuffer = await docxZip.generateAsync({
+        type: 'arraybuffer',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      
+      console.log('✅ Word template processed successfully with preserved formatting!');
+      
+      return new Blob([newDocxBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      
+    } catch (error) {
+      console.error('❌ Fel vid docx processing:', error);
+      
+      // Fallback: returnera original fil utan placeholder replacement
+      console.warn('⚠️ Fallback: returnerar original fil utan placeholder replacement');
+      
+      return new Blob([template.file], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+    }
+  }
 
-Title: ${placeholderData.CUSTOM_TITLE || 'Ingen titel'}
-Text: ${placeholderData.CUSTOM_TEXT || 'Ingen text'}
-QR Code: ${placeholderData.QR_CODE || 'Ingen QR-kod'}
-
-This is a placeholder implementation. 
-The original Word document formatting will be preserved when proper docx processing is implemented.
-`;
-
-    return new Blob([templateText], { type: 'text/plain;charset=utf-8' });
+  // Hjälpfunktion för att escape XML text
+  private escapeXmlText(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 }
 
