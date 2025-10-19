@@ -4,10 +4,13 @@
   "https": true,
   "serveConfigurations": {
     "default": {
-      "pageUrl": "https://localhost:4321/temp/workbench.html"
+      "pageUrl": "https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx"
     },
     "helloWorld": {
       "pageUrl": "https://localhost:4321/temp/workbench.html"
+    },
+    "gustafkliniken": {
+      "pageUrl": "https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx"
     }
   }
 }

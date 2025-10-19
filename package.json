@@ -30,6 +30,11 @@
     "test-gustafkliniken": "start test-gustafkliniken.html",
     "dev": "npm run clean && npm run serve:nobrowser",
     "dev:fast": "gulp serve --nobrowser --locale=en-us",
+    "test:sharepoint": "npm run serve:nobrowser && start https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx?debug=true&noredir=true&debugManifestsFile=https://localhost:4321/temp/build/manifests.js",
+    "serve:test": "npm run kill-port && gulp serve --nobrowser && timeout /t 3 && start https://gustafkliniken.sharepoint.com/sites/Gustafkliniken/SitePages/Testsida.aspx?debug=true&noredir=true&debugManifestsFile=https://localhost:4321/temp/build/manifests.js",
+    "dev:auto": "powershell -ExecutionPolicy Bypass -File ./scripts/start-dev-server.ps1",
+    "dev:simple": "scripts\\start-dev-server.bat",
+    "start:test": "npm run dev:simple",
     "build:fast": "gulp bundle --locale=en-us",
     "build:watch": "gulp bundle --locale=en-us --watch"
   },
