@@ -14,7 +14,7 @@ import { IQRskapareProps } from './components/IQRskapareProps';
 
 // Cache busting utilities
 class CacheBuster {
-  private static readonly CACHE_VERSION = '1.0.0';
+  private static readonly CACHE_VERSION = '2.1.DEBUG';
   private static readonly BUILD_TIMESTAMP = Date.now().toString();
   
   public static getBustingParams(): string {

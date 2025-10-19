@@ -159,6 +159,7 @@ export class TemplateManager {
     qrSize: number
   ): Promise<Blob> {
     try {
+      console.log('🚀 WordTemplateManager v2.1 - DEBUGGING PLACEHOLDER ISSUE');
       console.log('Processing uploaded Word document with placeholders...');
       
       // Read the uploaded file
@@ -176,6 +177,19 @@ export class TemplateManager {
       
       let xmlContent = await documentXml.async('text');
       console.log('Processing placeholders...');
+
+      // Debug: Log the XML content around QR placeholders
+      if (xmlContent.includes('{{QR_CODE_1}}')) {
+        const qrPosition = xmlContent.indexOf('{{QR_CODE_1}}');
+        const context = xmlContent.substring(Math.max(0, qrPosition - 100), qrPosition + 200);
+        console.log('🔍 Found {{QR_CODE_1}} placeholder in XML context:', context);
+      } else {
+        console.log('❌ {{QR_CODE_1}} placeholder NOT FOUND in XML');
+        // Check for other possible formats
+        if (xmlContent.includes('QR_CODE_1')) {
+          console.log('🔍 But found QR_CODE_1 text somewhere in XML');
+        }
+      }
 
       // CRITICAL: Ensure document has all required namespaces for images
       if (!xmlContent.includes('xmlns:wp=')) {
@@ -256,10 +270,52 @@ export class TemplateManager {
               
               console.log(`📏 Image size: ${qrSize}mm = ${sizeInInches}"= ${sizeInEmu} EMU`);
               
-              // Create SIMPLE image replacement - test with minimal XML first
-              replacementValue = `[QR IMAGE: ${imageName} - ${value}]`;
+              // Create proper Word image XML with complete OOXML structure
+              const docPrId = relationshipId.replace('rId', ''); // Use relationship number as ID
               
-              console.log(`🧪 TEST: Simple image placeholder for ${key} -> ${imageName}`);
+              const imageXml = `<w:p>
+  <w:r>
+    <w:drawing>
+      <wp:inline distT="0" distB="0" distL="0" distR="0">
+        <wp:extent cx="${sizeInEmu}" cy="${sizeInEmu}"/>
+        <wp:effectExtent l="0" t="0" r="0" b="0"/>
+        <wp:docPr id="${docPrId}" name="${imageName}"/>
+        <wp:cNvGraphicFramePr>
+          <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+        </wp:cNvGraphicFramePr>
+        <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+          <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+            <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+              <pic:nvPicPr>
+                <pic:cNvPr id="${docPrId}" name="${imageName}"/>
+                <pic:cNvPicPr/>
+              </pic:nvPicPr>
+              <pic:blipFill>
+                <a:blip r:embed="${relationshipId}"/>
+                <a:stretch>
+                  <a:fillRect/>
+                </a:stretch>
+              </pic:blipFill>
+              <pic:spPr>
+                <a:xfrm>
+                  <a:off x="0" y="0"/>
+                  <a:ext cx="${sizeInEmu}" cy="${sizeInEmu}"/>
+                </a:xfrm>
+                <a:prstGeom prst="rect">
+                  <a:avLst/>
+                </a:prstGeom>
+              </pic:spPr>
+            </pic:pic>
+          </a:graphicData>
+        </a:graphic>
+      </wp:inline>
+    </w:drawing>
+  </w:r>
+</w:p>`;
+              
+              replacementValue = imageXml;
+              
+              console.log(`🖼️ Created Word image XML for ${key} -> ${imageName}`);
               
             } catch (imageError) {
               console.error('❌ Error embedding QR image:', imageError);
@@ -277,14 +333,15 @@ export class TemplateManager {
           // Replace placeholder in XML content
           // For images, use a simple but effective replacement
           if (key.startsWith('QR_CODE_') && qrImages[key]) {
-            // Simple replacement - the paragraph structure should handle it
+            // Use {{}} format like in the Word document
             const placeholderPattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
             xmlContent = xmlContent.replace(placeholderPattern, replacementValue);
-            console.log(`🖼️ Replaced QR code placeholder ${key} with image XML`);
+            console.log(`🖼️ Replaced QR code placeholder {{${key}}} with image XML`);
           } else {
-            // For text placeholders, use simple replacement
+            // For text placeholders, use {{}} format
             const placeholderPattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
             xmlContent = xmlContent.replace(placeholderPattern, replacementValue);
+            console.log(`📝 Replaced text placeholder {{${key}}} with: ${value.substring(0, 50)}...`);
           }
         }
       }
