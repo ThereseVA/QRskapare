@@ -30,17 +30,87 @@
 
 Använd dessa exakta placeholders där du vill ha dynamisk data:
 
+**Grundläggande placeholders:**
 ```
-{QR_CODE}           - QR-kod innehåll (text)
 {CUSTOM_TITLE}      - Titel från webpart
 {CUSTOM_TEXT}       - Text från webpart
-{PATIENT_NAME}      - Patientnamn (framtida funktion)
-{DATE}              - Dagens datum (framtida funktion)
 ```
+
+**Numrerade QR-kod placeholders (1-5 st):**
+```
+{QR_CODE_1}         - Första QR-koden (faktisk QR-kod bild)
+{QR_TEXT_1}         - Beskrivande text för första QR-koden
+
+{QR_CODE_2}         - Andra QR-koden (faktisk QR-kod bild)  
+{QR_TEXT_2}         - Beskrivande text för andra QR-koden
+
+{QR_CODE_3}         - Tredje QR-koden (faktisk QR-kod bild)
+{QR_TEXT_3}         - Beskrivande text för tredje QR-koden
+
+...och så vidare upp till QR_CODE_5/QR_TEXT_5
+```
+
+**VIKTIGT:** 
+- `{QR_CODE_X}` ersätts med **faktisk QR-kod bild** (inte URL-text)
+- `{QR_TEXT_X}` ersätts med beskrivande text om QR-koden
+- Numren 1-5 motsvarar URL-fälten i webpart (URL 1 → QR_CODE_1, etc.)
 
 **OBS:** Använd `{PLACEHOLDER}` - INTE `{{PLACEHOLDER}}`
 
 ### **3. Exempel på mallstruktur:**
+
+```
+GUSTAF KLINIKEN
+Rubrik: {CUSTOM_TITLE}
+
+Beskrivning: {CUSTOM_TEXT}
+
+=== QR-KODER ===
+
+Första QR-koden:
+{QR_CODE_1}
+{QR_TEXT_1}
+
+Andra QR-koden:  
+{QR_CODE_2}
+{QR_TEXT_2}
+
+Tredje QR-koden:
+{QR_CODE_3}
+{QR_TEXT_3}
+
+Kontakta oss: info@gustafkliniken.se
+```
+
+**Resultat efter processing:**
+```
+GUSTAF KLINIKEN  
+Rubrik: Patientinformation
+
+Beskrivning: QR-koder för snabb åtkomst
+
+=== QR-KODER ===
+
+Första QR-koden:
+[■■■■■■■■■] <- Faktisk QR-kod bild
+[■■■■■■■■■]    (inte URL-text)
+[■■■■■■■■■]
+QR-kod 1: https://gustafkliniken.se/patient/123
+
+Andra QR-koden:
+[■■■■■■■■■] <- Faktisk QR-kod bild  
+[■■■■■■■■■]
+[■■■■■■■■■]
+QR-kod 2: tel:+46812345678
+
+Tredje QR-koden:
+[■■■■■■■■■] <- Faktisk QR-kod bild
+[■■■■■■■■■]
+[■■■■■■■■■]  
+QR-kod 3: mailto:info@gustafkliniken.se
+
+Kontakta oss: info@gustafkliniken.se
+```
 
 ```
 ╔══════════════════════════════════════════════════════════════╗

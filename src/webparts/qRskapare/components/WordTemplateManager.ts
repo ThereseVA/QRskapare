@@ -8,13 +8,30 @@ export interface ITemplate {
   file: ArrayBuffer;
 }
 
-// Word mall processor som bevarar ALL formatering
+// Utökad placeholder data structure för numrerade QR-koder
+export interface TemplateData {
+  CUSTOM_TITLE: string;
+  CUSTOM_TEXT: string;
+  QR_CODE_1?: string;
+  QR_TEXT_1?: string;
+  QR_CODE_2?: string; 
+  QR_TEXT_2?: string;
+  QR_CODE_3?: string;
+  QR_TEXT_3?: string;
+  QR_CODE_4?: string;
+  QR_TEXT_4?: string;
+  QR_CODE_5?: string;
+  QR_TEXT_5?: string;
+  // Lägg till fler vid behov...
+}
+
+// Legacy interface för bakåtkompatibilitet
 export interface WordTemplateOptions {
   qrText: string;
   customTitle: string;
   customText: string;
   patientName?: string;
-  qrCodeBase64?: string;  // QR-kod som base64 bild
+  qrCodeBase64?: string;
 }
 
 export interface TemplateFile {
@@ -73,19 +90,39 @@ export class TemplateManager {
       }
       
       let xmlContent = await documentXml.async('text');
-      console.log('📄 XML content loaded, performing placeholder replacement...');
+      console.log('📄 XML content loaded, processing placeholders...');
       
-      // Ersätt placeholders i XML-innehållet
-      Object.entries(placeholderData).forEach(([key, value]) => {
+      // Process alla placeholders
+      for (const [key, value] of Object.entries(placeholderData)) {
         const placeholder = `{${key}}`;
-        const escapedValue = this.escapeXmlText(value);
         
-        // Ersätt alla förekomster av placeholder
-        xmlContent = xmlContent.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), escapedValue);
-        console.log(`✅ Replaced ${placeholder} with: ${value}`);
-      });
+        if (key.startsWith('QR_CODE_') && value) {
+          // För nu ersätter vi QR-kod placeholders med [QR: URL] format
+          // TODO: Implementera faktisk QR-kod bild insertion senare
+          console.log(`🔳 Processing QR code placeholder ${key}: ${value}`);
+          
+          const qrPlaceholderText = `[QR-KOD: ${value}]`;
+          const escapedValue = this.escapeXmlText(qrPlaceholderText);
+          
+          xmlContent = xmlContent.replace(
+            new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), 
+            escapedValue
+          );
+          
+          console.log(`✅ QR code placeholder ${key} replaced with text format`);
+          
+        } else if (value) {
+          // Detta är en text placeholder
+          const escapedValue = this.escapeXmlText(value);
+          xmlContent = xmlContent.replace(
+            new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), 
+            escapedValue
+          );
+          console.log(`✅ Replaced text ${placeholder} with: ${value}`);
+        }
+      }
       
-      // Uppdatera document.xml i ZIP-arkivet
+      // Uppdatera document.xml
       docxZip.file('word/document.xml', xmlContent);
       
       // Generera nytt docx-arkiv
@@ -95,7 +132,8 @@ export class TemplateManager {
         compressionOptions: { level: 6 }
       });
       
-      console.log('✅ Word template processed successfully with preserved formatting!');
+      console.log('✅ Word template processed successfully with placeholder replacement!');
+      console.log('ℹ️ QR codes shown as text format - image insertion coming in next iteration');
       
       return new Blob([newDocxBuffer], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 

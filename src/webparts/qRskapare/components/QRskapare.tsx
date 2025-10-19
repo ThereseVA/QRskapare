@@ -615,12 +615,22 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
     try {
       setIsGenerating(true);
       
-      // Create placeholder data
-      const placeholderData = {
+      // Create placeholder data med numrerade QR-koder
+      const placeholderData: Record<string, string> = {
         CUSTOM_TITLE: headerText || 'QR-koder',
-        CUSTOM_TEXT: text || 'Genererade QR-koder',
-        QR_CODE: urls[0] || 'https://example.com'
+        CUSTOM_TEXT: text || 'Genererade QR-koder'
       };
+
+      // Lägg till numrerade QR-koder och tillhörande texter
+      urls.forEach((url, index) => {
+        if (url.trim()) {
+          const qrNumber = index + 1;
+          placeholderData[`QR_CODE_${qrNumber}`] = url;
+          placeholderData[`QR_TEXT_${qrNumber}`] = `QR-kod ${qrNumber}: ${url}`;
+        }
+      });
+
+      console.log('🔄 Generating document with placeholder data:', placeholderData);
 
       const documentBlob = await templateManager.processTemplate(template.id, placeholderData);
       const fileName = `${template.name.replace('.docx', '')}_${new Date().toISOString().split('T')[0]}.docx`;
@@ -628,7 +638,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
       saveAs(documentBlob, fileName);
       
       setMessage({
-        text: `✅ Dokument genererat från mall "${template.name}"!`,
+        text: `✅ Dokument genererat från mall "${template.name}" med ${urls.filter(u => u.trim()).length} QR-koder!`,
         type: MessageBarType.success
       });
     } catch (error) {
@@ -978,7 +988,7 @@ const QRskapare: React.FC<IQRskapareProps> = (props) => {
                   iconProps={{ iconName: 'Upload' }}
                 />
                 <Text variant="small">
-                  Ladda upp .docx-filer med placeholders som {'{QR_CODE}'}, {'{CUSTOM_TITLE}'}, {'{CUSTOM_TEXT}'}
+                  Ladda upp .docx-filer med placeholders: {'{CUSTOM_TITLE}'}, {'{CUSTOM_TEXT}'}, {'{QR_CODE_1}'}, {'{QR_TEXT_1}'} osv
                 </Text>
               </Stack>
 
